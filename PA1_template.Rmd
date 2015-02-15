@@ -1,8 +1,8 @@
 ---
 title: 'Reproducible Research: Peer Assessment 1'
 output:
-  html_document:
-    keep_md: yes
+html_document:
+keep_md: yes
 ---
 
 ## Loading and preprocessing the data
@@ -19,28 +19,59 @@ data[,2] <- as.Date(data[,2], format = "%Y-%m-%d")
 ```{r}
 totalstep <- aggregate(steps ~ date, data=data, sum)
 library(ggplot2)
-qplot(steps, data=totalstep, geom="histogram")
-meantotalstep <- mean(totalstep$steps)
-meantotalstep 
-medtotalstep <- median(totalstep$steps)
-medtotalstep
+qplot(steps, data=totalstep, geom = "histogram", binwidth = 300)
+
+mean(totalstep$steps)
+
+median(totalstep$steps)
 ```
 
 
 ## What is the average daily activity pattern?
 
 ```{r}
-
+meanstep <- aggregate(steps ~ interval, data=data, mean)
+plot(meanstep, type = "l")
 ```
 
 ## Imputing missing values
 
 ```{r}
+sum(is.na(data))
 
+
+temp <- merge(data,meanstep, by = "interval")
+data2 <- data
+data2$steps[is.na(data2$steps)] <- temp$steps.y[is.na(data2$steps)]
+rm(temp)
+
+totalstep2 <- aggregate(steps ~ date, data=data2, sum)
+qplot(steps, data=totalstep2, geom = "histogram", binwidth = 300)
+
+mean(totalstep2$steps)
+
+median(totalstep2$steps)
 ```
+
+We observe that both values differ from the original computation.
+
+Imputing missing data increase both mean and median.
 
 ## Are there differences in activity patterns between weekdays and weekends?
 
 ```{r}
+data2$weekday <- factor(weekdays(data2$date))
 
+# My code is setted with french names for the weekdays
+data2$weekday <- ifelse(data2$weekday %in% c("samedi", "dimanche"), "weekend", "weekday")
+data2$weekday <- factor(data2$weekday)
+
+temp1 <- aggregate(steps ~ interval, data=data2[data2$weekday == "weekday",], mean)
+temp1$weekday <- "weekday"
+temp2 <- aggregate(steps ~ interval, data=data2[data2$weekday == "weekend",], mean)
+temp2$weekday <- "weekend"
+data3 <- rbind(temp1,temp2)
+
+library(lattice)
+xyplot(steps ~ interval | weekday, data = data3, type = "l", layout = c(1,2))
 ```
